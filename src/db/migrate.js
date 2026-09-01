@@ -316,10 +316,15 @@ async function syncTraderRoster() {
     ['sarah-williams', 'dennis-willam', 'Dennis Willam', 'Forex Master'],
     ['david-kim', 'thomas-john', 'Thomas John', 'Stock Market Pro'],
     ['amara-okonkwo', 'sophia-claire', 'Sophia Claire', 'Fixed Income'],
-    ['tomasz-nowak', 'sophia-claire-scalper', 'Sophia Claire', 'Scalper'],
+    ['tomasz-nowak', 'sarah-bennett', 'Sarah Bennett', 'Scalper'],
+['sophia-claire-scalper', 'sarah-bennett', 'Sarah Bennett', 'Scalper'],
     ['marcus-rodriguez', 'marcus-rodriguez', 'Marcus Rodriquez', 'Swing Trader'],
   ];
+  /* Rename historical slugs, preserving follower-linked rows. If a rename target already exists
+     as a leader-less placeholder (e.g. from a previous roster round), drop it first so the
+     followered source row can take the name. */
   for (const row of RENAMES) {
+    await sql`delete from traders where slug = ${row[1]} and not exists (select 1 from copy_follows cf where cf.trader_id = traders.id)`;
     await sql`update traders set slug = ${row[1]}, display_name = ${row[2]}, strategy = ${row[3]}, active = true where slug = ${row[0]}`;
   }
   const ROSTER = [
@@ -327,7 +332,7 @@ async function syncTraderRoster() {
     ['thomas-john', 'Thomas John', 'Stock Market Pro',  6,  500],
     ['marcus-rodriguez', 'Marcus Rodriquez', 'Swing Trader',  7,  300],
     ['sophia-claire', 'Sophia Claire', 'Fixed Income',  2, 2500],
-    ['sophia-claire-scalper', 'Sophia Claire', 'Scalper',  9,  250],
+    ['sarah-bennett', 'Sarah Bennett', 'Scalper',  9,  250],
   ];
   for (const row of ROSTER) {
     await sql`

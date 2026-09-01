@@ -26,7 +26,7 @@ const TRADERS = [
     bio: 'Multi-day swings on crypto and index CFDs. Wide stops, small size, patient with entries.' },
   { name: 'Sophia Claire',    strategy: 'Fixed Income',     risk: 2, min: 2500,
     bio: 'Rates and carry. Low turnover, low drawdown, unexciting by design.' },
-  { name: 'Sophia Claire',     strategy: 'Scalper',          risk: 9, min: 250,
+  { name: 'Sarah Bennett',     strategy: 'Scalper',          risk: 9, min: 250,
     bio: 'High-frequency intraday on BTC and ETH. High turnover and real drawdowns — size accordingly.' },
 ];
 
