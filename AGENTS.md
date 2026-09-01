@@ -24,7 +24,6 @@ Node.js + Hono (web) + Drizzle ORM + Postgres + Eta templates. Single-process.
 - Admin compose: `/admin/mail/compose` (System → Send mail) sends to one user or broadcasts to all active users via `mailAdminMessage(u, subject, message)` (plain text; paragraphs pre-escaped in the helper, template emits raw). Registered recipients also get an in-app notification. Entry points: nav, outbox "Compose mail" button, "Email this user" on the user page.
 
 ## Frontend conventions & gotchas
-- reCAPTCHA v3: the token is generated client-side by `public/js/app.js` (intercepts `form.recaptcha-form` submits). ANY layout that renders a recaptcha form MUST include `<script src="/js/app.js" defer></script>` — `layouts/site.eta` and `layouts/app.eta` do; `layouts/auth.eta` was missing it (fixed), which broke login/register with "reCAPTCHA token missing."
 - Inner page templates are rendered via `eta.render(view, {...})` into `body` BEFORE `render()` wraps the layout — so `csrf`/`user` injected by `render()` do NOT reach the inner template. Every inner render of a form template must pass `csrf: c.get('csrf')` explicitly (admin.js/dashboard.js do; public.js SIMPLE pages + contact POST were missing it → `_csrf` rendered as literal "undefined" → 403 "session expired").
 - `public/css/app.css` carries two naming layers: a BEM-style layer (`.stat__v`, `.card--flush`, `.btn--ghost`) and a "single-dash" compatibility layer (`.stat-v`, `.btn-ghost`, `.card-head`, `.metric-card`, `.notice`, `.page-head`, `.kv`, `.meter`, `.avatar`, `.trader-head`, `.plan*`, `.row2`). The `.eta` dashboard templates use the single-dash names; both resolve onto the same design tokens. Keep new component styles in the single-dash layer to match the templates.
 - Dashboard tables use bare `<table>` inside `.table-wrap` (NOT the `.tbl` class). Styles live under `.table-wrap table` so they apply automatically — no need to add a class in templates.
@@ -34,7 +33,6 @@ Node.js + Hono (web) + Drizzle ORM + Postgres + Eta templates. Single-process.
 ## Testing locally
 Needs Postgres. Start one, set `DATABASE_URL` in `.env` (use `?sslmode=disable` for a local container — `postgres` lib defaults to SSL `require`), run `node src/db/migrate.js && node src/db/seed.js`, then `RUN_ENGINE=false node src/index.js`.
 - CSRF note for curl: fetch the page with the cookie jar, grep the `_csrf` token, POST with the same jar. Token is stable per session.
-- reCAPTCHA bypass for automated local tests: `NODE_ENV=test` + `RECAPTCHA_SECRET_KEY=test-secret-key` in `.env` makes `verifyRecaptcha` accept any token.
 
 ## Deployment (Railway)
 - `railway.json` (DOCKERFILE builder) + `Dockerfile` (node:22-slim, builds argon2 native binding). `.dockerignore` excludes node_modules/.env/.git/public/uploads.

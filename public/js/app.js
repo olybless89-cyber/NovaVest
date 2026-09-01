@@ -1,56 +1,5 @@
 /* Small, dependency-free. HTMX does the fetching; this handles polish. */
 
-/* ── Google reCAPTCHA v3: execute before form submission ── */
-(function () {
-  const siteKey = document.documentElement.dataset.recaptchaSiteKey;
-  if (!siteKey || typeof grecaptcha === 'undefined') return;
-
-  function execute(form) {
-    const action = form.dataset.action || 'submit';
-    return new Promise((resolve, reject) => {
-      grecaptcha.ready(() => {
-        grecaptcha.execute(siteKey, { action })
-          .then((token) => {
-            const input = form.querySelector('.recaptcha-token');
-            if (input) input.value = token;
-            resolve(token);
-          })
-          .catch(reject);
-      });
-    });
-  }
-
-  document.querySelectorAll('form.recaptcha-form').forEach((form) => {
-    form.addEventListener('submit', async (e) => {
-      if (form.dataset.recaptchaReady === 'true') return;
-      e.preventDefault();
-      if (form.dataset.recaptchaBusy === 'true') return; // double-click guard
-      form.dataset.recaptchaBusy = 'true';
-      try {
-        await execute(form);
-        form.dataset.recaptchaReady = 'true';
-        // requestSubmit is missing on older engines — fall back to a native
-        // submit so the click is never silently swallowed.
-        if (typeof form.requestSubmit === 'function') form.requestSubmit();
-        else form.submit();
-      } catch (err) {
-        console.error('[recaptcha]', err);
-        alert('Could not verify the security check. Please reload the page and try again.');
-      } finally {
-        delete form.dataset.recaptchaBusy;
-      }
-    });
-  });
-
-  // Refresh token on each page load so users can submit again without reload
-  grecaptcha?.ready?.(() => {
-    document.querySelectorAll('form.recaptcha-form').forEach((form) => {
-      execute(form).catch(() => {});
-    });
-  });
-})();
-
-// Live clock in the hero chart bar
 const clock = document.getElementById('clock');
 if (clock) {
   const tick = () => { clock.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false }); };

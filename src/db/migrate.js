@@ -305,6 +305,39 @@ const DDL = [
 export async function migrate() {
   for (const stmt of DDL) await sql.unsafe(stmt);
   console.log(`[migrate] ${DDL.length} statements applied (idempotent)`);
+  await syncTraderRoster();
+}
+
+/* Renames + re-rosters the public trader lineup in place so existing rows
+   (ids, copy followers, trade history) keep their identity. Runs on every boot. */
+async function syncTraderRoster() {
+
+  const RENAMES = [
+    ['sarah-williams', 'dennis-willam', 'Dennis Willam', 'Forex Master'],
+    ['david-kim', 'thomas-john', 'Thomas John', 'Stock Market Pro'],
+    ['amara-okonkwo', 'sophia-claire', 'Sophia Claire', 'Fixed Income'],
+    ['tomasz-nowak', 'sophia-claire-scalper', 'Sophia Claire', 'Scalper'],
+    ['marcus-rodriguez', 'marcus-rodriguez', 'Marcus Rodriquez', 'Swing Trader'],
+  ];
+  for (const row of RENAMES) {
+    await sql`update traders set slug = ${row[1]}, display_name = ${row[2]}, strategy = ${row[3]}, active = true where slug = ${row[0]}`;
+  }
+  const ROSTER = [
+    ['dennis-willam', 'Dennis Willam', 'Forex Master',  4,  1000],
+    ['thomas-john', 'Thomas John', 'Stock Market Pro',  6,  500],
+    ['marcus-rodriguez', 'Marcus Rodriquez', 'Swing Trader',  7,  300],
+    ['sophia-claire', 'Sophia Claire', 'Fixed Income',  2, 2500],
+    ['sophia-claire-scalper', 'Sophia Claire', 'Scalper',  9,  250],
+  ];
+  for (const row of ROSTER) {
+    await sql`
+      insert into traders (slug, display_name, strategy, bio, min_copy, risk_score, markets, active)
+      values (${row[0]}, ${row[1]}, ${row[2]}, null, ${row[4]}, ${row[3]},
+              ${JSON.stringify(['crypto', 'forex'])}, true)
+      on conflict (slug) do nothing`;
+  }
+  await sql`update traders set active = true where slug = any(${ROSTER.map(r => r[0])})`;
+  await sql`update traders set active = false where active = true and slug <> all(${ROSTER.map(r => r[0])})`;
 }
 
 // Run directly: `node src/db/migrate.js`

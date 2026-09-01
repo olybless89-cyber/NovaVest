@@ -18,15 +18,15 @@ const PLANS = [
 ];
 
 const TRADERS = [
-  { name: 'Marcus Rodriguez', strategy: 'Stock Market Pro', risk: 6, min: 500,
+  { name: 'Dennis Willam', strategy: 'Forex Master', risk:   4,   min:   1000,
+    bio: 'Majors  one or two crosses. Trades London  New York overlap, flat overnight.' },
+  { name: 'Thomas John',   strategy: 'Stock Market Pro',     risk:   6,   min:   500,
     bio: 'Momentum on large-cap US equities. Holds through earnings only when the setup was there before the print.' },
-  { name: 'Sarah Williams',   strategy: 'Forex Master',     risk: 4, min: 1000,
-    bio: 'Majors and one or two crosses. Trades London and New York overlap, flat overnight.' },
-  { name: 'David Kim',        strategy: 'Swing Trader',     risk: 7, min: 300,
+  { name: 'Marcus Rodriquez',        strategy: 'Swing Trader',     risk: 7, min: 300,
     bio: 'Multi-day swings on crypto and index CFDs. Wide stops, small size, patient with entries.' },
-  { name: 'Amara Okonkwo',    strategy: 'Fixed Income',     risk: 2, min: 2500,
+  { name: 'Sophia Claire',    strategy: 'Fixed Income',     risk: 2, min: 2500,
     bio: 'Rates and carry. Low turnover, low drawdown, unexciting by design.' },
-  { name: 'Tomasz Nowak',     strategy: 'Scalper',          risk: 9, min: 250,
+  { name: 'Sophia Claire',     strategy: 'Scalper',          risk: 9, min: 250,
     bio: 'High-frequency intraday on BTC and ETH. High turnover and real drawdowns — size accordingly.' },
 ];
 
@@ -54,8 +54,11 @@ async function main() {
   console.log(`[seed] plans: ${PLANS.length}`);
 
   /* --- traders --- */
+  const usedSlugs = new Set();
   for (const t of TRADERS) {
-    const slug = t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    let slug = t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  if (usedSlugs.has(slug)) slug += '-' + t.strategy.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    usedSlugs.add(slug);
     await sql`
       insert into traders (slug, display_name, strategy, bio, min_copy, risk_score, markets, active)
       values (${slug}, ${t.name}, ${t.strategy}, ${t.bio}, ${t.min}, ${t.risk},

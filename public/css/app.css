@@ -1113,9 +1113,6 @@ code.input{
 .auth-switch{margin-top:var(--s-5);color:var(--ink-3)}
 .auth-switch a{color:var(--blue-hi);font-weight:600}
 .auth-switch a:hover{color:var(--yellow-hi)}
-/* Keep the reCAPTCHA badge visible but away from the live chat */
-.grecaptcha-badge{visibility:visible!important;opacity:.7;transition:opacity .2s var(--ease)}
-.grecaptcha-badge:hover{opacity:1}
 .input-icon{position:relative}
 .input-icon svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-4);pointer-events:none}
 .input-icon .input{padding-left:42px}
