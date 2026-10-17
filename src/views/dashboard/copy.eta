@@ -1,10 +1,12 @@
 <div class="page-head">
   <div><h1>Copy trading</h1>
-    <p class="small" style="margin:4px 0 0">Every record below is calculated from executed positions. Nothing is a headline figure.</p></div>
+    <p class="small" style="margin:4px 0 0">Practice copy trading with simulated strategies.</p></div>
   <span class="small muted num"><%= it.usd(it.bal.available) %> available</span>
 </div>
 
-<% if (it.ok) { %><div class="notice notice-ok"><%= it.ok === 'stopped' ? 'Copying stopped. Your allocation and P&L are back in your balance.' : 'Now copying. Positions mirror as the trader opens them.' %></div><% } %>
+<div class="notice notice-warn"><span><b>Simulated.</b> Trades are generated automatically against live market prices and no real orders are placed. Results shown are simulated and are not real trading performance.</span></div>
+
+<% if (it.ok) { %><div class="notice notice-ok"><%= it.ok === 'stopped' ? 'Copying stopped. Your allocation and P&L are back in your balance.' : 'Now copying. Simulated positions mirror as the strategy opens them.' %></div><% } %>
 <% if (it.error) { %><div class="notice notice-err"><%= it.error %></div><% } %>
 
 <% if (it.mine.length) { %>
@@ -14,7 +16,7 @@
       <div class="card">
         <div class="trader-head">
           <div class="avatar"><%= it.initials(t.displayName.split(' ')[0], t.displayName.split(' ')[1]) %></div>
-          <div style="min-width:0;flex:1"><h3><%= t.displayName %></h3><div class="role"><%= t.strategy %></div></div>
+          <div style="min-width:0;flex:1"><h3><%= t.displayName %></h3><div class="role"><%= t.strategy %> · Simulated</div></div>
           <span class="badge <%= t.openTrades ? 'badge-live' : 'badge-idle' %>"><%= t.openTrades ? 'In market' : 'Flat' %></span>
         </div>
         <dl class="kv">
@@ -48,7 +50,7 @@
     <div class="card">
       <div class="trader-head">
         <div class="avatar"><%= it.initials(t.displayName.split(' ')[0], t.displayName.split(' ')[1]) %></div>
-        <div style="min-width:0;flex:1"><h3><%= t.displayName %></h3><div class="role"><%= t.strategy %></div></div>
+        <div style="min-width:0;flex:1"><h3><%= t.displayName %></h3><div class="role"><%= t.strategy %> · Simulated</div></div>
       </div>
       <dl class="kv">
         <dt>Return on volume</dt><dd class="<%= it.dir(t.roi) %>"><%= it.pct(t.roi) %></dd>

@@ -1,0 +1,81 @@
+<% const t = it.t; const okMsg = { created: 'Trader created. Simulated trades start on the next engine cycle.', saved: 'Profile saved.', toggled: t.active ? 'Trader is now visible to users.' : 'Trader is now hidden from users.', stopped: 'Copy stopped. The allocation and P&L were returned to the user\'s balance.' }[it.ok]; %>
+<div class="page-head"><div><h1><%= t.displayName %></h1>
+  <p class="small" style="margin:4px 0 0"><%= t.strategy %> · simulated strategy ·
+    <span class="badge <%= t.active ? 'badge-live' : 'badge-idle' %>"><%= t.active ? 'visible' : 'hidden' %></span></p></div>
+  <div class="row" style="gap:8px;flex-wrap:wrap">
+    <form method="post" action="/admin/traders/<%= t.id %>/toggle" style="display:inline">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>"><input type="hidden" name="back" value="detail">
+      <button class="btn btn-quiet btn-sm"><%= t.active ? 'Hide from users' : 'Show to users' %></button>
+    </form>
+    <% if (t.active) { %><a class="btn btn-quiet btn-sm" href="/copy-trading/<%= t.slug %>" target="_blank" rel="noopener">Public page</a><% } %>
+    <a class="btn btn-quiet btn-sm" href="/admin/traders">Back to traders</a>
+  </div></div>
+
+<% if (okMsg) { %><div class="notice notice-ok"><%= okMsg %></div><% } %>
+<% if (it.error) { %><div class="notice notice-err"><%= it.error %></div><% } %>
+
+<div class="grid g4" style="margin-bottom:22px">
+  <div class="stat"><div class="stat-k">Copying now</div><div class="stat-v"><%= t.followers %></div><div class="stat-sub"><%= it.usd(t.aum, 0) %> allocated</div></div>
+  <div class="stat"><div class="stat-k">Closed trades</div><div class="stat-v"><%= t.closedTrades %></div><div class="stat-sub"><%= t.openTrades %> open</div></div>
+  <div class="stat"><div class="stat-k">Win rate</div><div class="stat-v"><%= t.winRate.toFixed(1) %>%</div><div class="stat-sub">Calculated</div></div>
+  <div class="stat"><div class="stat-k">Net P&amp;L</div><div class="stat-v <%= it.dir(t.totalPnl) %>"><%= it.signedUsd(t.totalPnl) %></div><div class="stat-sub"><%= it.pct(t.roi) %> on volume</div></div>
+</div>
+
+<div class="grid grid-admin-split">
+  <div>
+    <div class="card-head"><h3>Followers</h3></div>
+    <div class="table-wrap" style="margin-bottom:22px">
+      <table>
+        <thead><tr><th>User</th><th class="num">Allocation</th><th class="num">P&amp;L</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% if (!it.follows.length) { %><tr><td colspan="5"><div class="empty"><h4>Nobody has copied this trader yet</h4></div></td></tr><% } %>
+          <% it.follows.forEach(function(f){ %>
+            <tr>
+              <td><a href="/admin/users/<%= f.user_id %>"><b><%= f.first_name %> <%= f.last_name %></b></a>
+                <div class="small muted"><%= f.email %> · since <%= it.ago(f.started_at) %></div></td>
+              <td class="num"><%= it.usd(f.allocation) %></td>
+              <td class="num <%= it.dir(f.pnl) %>"><%= it.signedUsd(f.pnl) %></td>
+              <td><span class="badge <%= f.status === 'active' ? 'badge-live' : 'badge-idle' %>"><%= f.status %></span></td>
+              <td style="text-align:right">
+                <% if (f.status === 'active') { %>
+                <form method="post" action="/admin/traders/<%= t.id %>/followers/<%= f.id %>/stop">
+                  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+                  <button class="btn btn-danger btn-sm" data-confirm="Stop this copy and return <%= it.usd(f.allocation) %> plus P&amp;L to <%= f.first_name %>'s balance?">Stop</button>
+                </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-head"><h3>Recent simulated trades</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Symbol</th><th>Side</th><th class="num">Size</th><th class="num">Entry → Exit</th><th class="num">P&amp;L</th></tr></thead>
+        <tbody>
+          <% if (!it.trades.length) { %><tr><td colspan="5"><div class="empty"><h4>No trades yet</h4><p class="small">The engine opens trades for visible traders automatically.</p></div></td></tr><% } %>
+          <% it.trades.forEach(function(r){ %>
+            <tr>
+              <td><b><%= r.symbol %></b><div class="small muted"><%= r.status === 'open' ? 'open · ' + it.ago(r.opened_at) : 'closed · ' + it.ago(r.closed_at) %></div></td>
+              <td style="text-transform:capitalize"><%= r.side %><% if (r.leverage > 1) { %> <span class="small muted"><%= r.leverage %>x</span><% } %></td>
+              <td class="num"><%= it.usd(r.size_usd, 0) %></td>
+              <td class="num"><%= Number(r.entry_price).toPrecision(6) %> → <%= r.exit_price ? Number(r.exit_price).toPrecision(6) : '—' %></td>
+              <td class="num <%= it.dir(r.pnl || 0) %>"><%= r.pnl != null ? it.signedUsd(r.pnl) : '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="height:fit-content">
+    <div class="card-head"><h3>Edit profile</h3></div>
+    <form method="post" action="/admin/traders/<%= t.id %>/edit">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <%~ include('../partials/trader-form', { t: t, pre: 'ed', strategies: it.strategies, markets: it.markets }) %>
+      <button class="btn btn-primary btn-block btn-sm">Save profile</button>
+    </form>
+  </div>
+</div>

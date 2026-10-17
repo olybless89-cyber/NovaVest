@@ -6,6 +6,7 @@
 import crypto from 'node:crypto';
 import { db, sql } from '../db/client.js';
 import { users } from '../db/schema.js';
+import { signedUsd } from './money.js';
 import { eq } from 'drizzle-orm';
 import { hash } from './auth.js';
 
@@ -83,4 +84,26 @@ export async function setWithdrawalCode(userId, code) {
 }
 export async function clearWithdrawalCode(userId) {
   await db.update(users).set({ withdrawalCodeHash: null }).where(eq(users.id, userId));
+}
+
+/* Stop a copy follow: open slices close at entry (no phantom P&L), the
+   allocation is released from locked back to main with realised P&L.
+   Shared by the user's own "Stop" button and the admin trader page.
+   Returns the follow row, or null when it was not active. */
+export async function stopFollow(followId, { userId = null, memo = 'Copy closed' } = {}) {
+  return sql.begin(async (tx) => {
+    const [f] = await tx`select * from copy_follows where id = ${followId}
+      ${userId ? tx`and user_id = ${userId}` : tx``} for update`;
+    if (!f || f.status !== 'active') return null;
+    const [{ pnl }] = await tx`select coalesce(sum(pnl), 0)::text pnl from copy_positions
+      where follow_id = ${followId} and status = 'closed'`;
+    await tx`update copy_positions set status = 'closed', closed_at = now(), pnl = coalesce(pnl, 0)
+      where follow_id = ${followId} and status = 'open'`;
+    await tx`update copy_follows set status = 'stopped', stopped_at = now() where id = ${followId}`;
+    const alloc = Number(f.allocation);
+    await tx`insert into ledger (user_id, account, kind, amount, ref_type, ref_id, memo) values
+      (${f.user_id}, 'locked', 'copy_close', ${-alloc}, 'follow', ${followId}, 'Allocation released'),
+      (${f.user_id}, 'main', 'copy_close', ${alloc + Number(pnl)}, 'follow', ${followId}, ${memo + ', P&L ' + signedUsd(pnl)})`;
+    return { ...f, pnl: Number(pnl) };
+  });
 }

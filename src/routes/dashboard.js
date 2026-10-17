@@ -9,6 +9,7 @@ import {
 import { requireUser, hash, verify } from '../lib/auth.js';
 import { render, eta } from '../lib/view.js';
 import { portfolio, balance, traderStats, myCopyPositions, unreadCount, livePrices } from '../lib/stats.js';
+import { stopFollow } from '../lib/finance.js';
 import { mailPlanActivated, mailDepositReceived, mailWithdrawalRequested } from '../lib/mail.js';
 import { getWallets, listPaymentMethods, getPaymentMethod, getSiteConfig } from '../lib/settings.js';
 import { saveReceipt } from '../lib/uploads.js';
@@ -318,23 +319,8 @@ dash.post('/dashboard/copy/follow', async (c) => {
 dash.post('/dashboard/copy/stop', async (c) => {
   const u = c.get('user');
   const id = Number(c.get('body').followId);
-  const [f] = await db.select().from(copyFollows)
-    .where(and(eq(copyFollows.id, id), eq(copyFollows.userId, u.id))).limit(1);
-  if (!f || f.status !== 'active') return c.redirect('/dashboard/copy');
-
-  // Close open slices at their entry price — no phantom P&L on stop.
-  const [{ pnl }] = await sql`
-    select coalesce(sum(pnl), 0)::text pnl from copy_positions
-    where follow_id = ${id} and status = 'closed'`;
-  await sql`update copy_positions set status = 'closed', closed_at = now(), pnl = coalesce(pnl, 0)
-            where follow_id = ${id} and status = 'open'`;
-  await db.update(copyFollows).set({ status: 'stopped', stoppedAt: new Date() }).where(eq(copyFollows.id, id));
-
-  const alloc = Number(f.allocation);
-  await db.insert(ledger).values([
-    { userId: u.id, account: 'locked', kind: 'copy_close', amount: String(-alloc), refType: 'follow', refId: id, memo: 'Allocation released' },
-    { userId: u.id, account: 'main',   kind: 'copy_close', amount: String(alloc + Number(pnl)), refType: 'follow', refId: id, memo: `Copy closed, P&L ${fmt.signedUsd(pnl)}` },
-  ]);
+  const stopped = await stopFollow(id, { userId: u.id });
+  if (!stopped) return c.redirect('/dashboard/copy');
   return c.redirect('/dashboard/copy?ok=stopped');
 });
 

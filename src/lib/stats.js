@@ -79,9 +79,9 @@ export async function portfolio(userId) {
 }
 
 /** Trader leaderboard. followers/profit/winRate are all aggregates. */
-export async function traderStats(traderId = null) {
+export async function traderStats(traderId = null, { includeHidden = false } = {}) {
   const rows = await sql`
-    select t.id, t.slug, t.display_name, t.strategy, t.bio, t.avatar_url,
+    select t.id, t.slug, t.active, t.display_name, t.strategy, t.bio, t.avatar_url,
            t.copy_fee::text copy_fee, t.min_copy::text min_copy, t.risk_score, t.markets,
            coalesce(f.followers, 0)                     as followers,
            coalesce(f.aum, 0)::text                     as aum,
@@ -103,7 +103,7 @@ export async function traderStats(traderId = null) {
     left join (
       select trader_id, count(*) open_trades
       from trader_trades where status = 'open' group by trader_id) o on o.trader_id = t.id
-    where t.active = true ${traderId ? sql`and t.id = ${traderId}` : sql``}
+    where ${includeHidden ? sql`true` : sql`t.active = true`} ${traderId ? sql`and t.id = ${traderId}` : sql``}
     order by coalesce(s.pnl, 0) desc`;
 
   return rows.map((r) => {
@@ -111,7 +111,7 @@ export async function traderStats(traderId = null) {
     const volume = Number(r.volume);
     const pnl = Number(r.total_pnl);
     return {
-      id: r.id, slug: r.slug, displayName: r.display_name, strategy: r.strategy,
+      id: r.id, slug: r.slug, active: r.active, displayName: r.display_name, strategy: r.strategy,
       bio: r.bio, avatarUrl: r.avatar_url, markets: r.markets || [],
       copyFee: Number(r.copy_fee), minCopy: Number(r.min_copy), riskScore: r.risk_score,
       followers: Number(r.followers),

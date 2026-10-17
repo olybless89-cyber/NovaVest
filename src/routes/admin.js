@@ -12,7 +12,7 @@ import {
   getWallets, setWallets, getSiteConfig, setSiteConfig,
   listPaymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, methodValues,
 } from '../lib/settings.js';
-import { BUCKETS, creditDebit, clearAccount, setWithdrawalCode, clearWithdrawalCode } from '../lib/finance.js';
+import { BUCKETS, creditDebit, clearAccount, setWithdrawalCode, clearWithdrawalCode, stopFollow } from '../lib/finance.js';
 import {
   mailDepositConfirmed, mailDepositDeclined, mailWithdrawalSent, mailWithdrawalDeclined,
   mailKycApproved, mailKycRejected, mailAdminMessage,
@@ -233,30 +233,104 @@ admin.post('/admin/users/:id/adjust', async (c) => {
 });
 
 /* ---------------- traders ---------------- */
+/* Admin manages a strategy's identity and who is copying it. Performance
+   (return, win rate, followers) is always computed from the simulated trades
+   and real follows — there is deliberately no way to type those numbers in. */
+const STRATEGIES = ['Swing Trader', 'Scalper', 'Stock Market Pro', 'Forex Master', 'Fixed Income', 'Discretionary'];
+const MARKETS = ['crypto', 'forex', 'stocks', 'indices', 'commodities'];
+const ipOf = (c) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || null;
+const traderFields = (b) => {
+  const displayName = String(b.displayName || '').trim().slice(0, 80);
+  const markets = MARKETS.filter((m) => b['market_' + m]);
+  return {
+    displayName,
+    strategy: String(b.strategy || 'Discretionary').trim().slice(0, 60) || 'Discretionary',
+    bio: String(b.bio || '').trim().slice(0, 600),
+    minCopy: String(Math.max(1, Number(b.minCopy) || 100)),
+    riskScore: Math.max(1, Math.min(10, Number(b.riskScore) || 5)),
+    markets: markets.length ? markets : ['crypto'],
+  };
+};
+
 admin.get('/admin/traders', async (c) => {
-  const rows = await traderStats();
-  return shell(c, 'admin/traders', { rows, ok: c.req.query('ok') }, 'Traders');
+  const rows = await traderStats(null, { includeHidden: true });
+  rows.sort((a, b) => Number(b.active) - Number(a.active));
+  return shell(c, 'admin/traders', {
+    rows, strategies: STRATEGIES, markets: MARKETS, ok: c.req.query('ok'), error: c.req.query('e'),
+  }, 'Traders');
 });
 
 admin.post('/admin/traders', async (c) => {
-  const b = c.get('body');
-  const name = String(b.displayName || '').trim();
-  if (!name) return c.redirect('/admin/traders');
-  await db.insert(tradersT).values({
-    displayName: name,
-    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Math.random().toString(36).slice(2, 6),
-    strategy: String(b.strategy || 'Discretionary'),
-    bio: String(b.bio || ''),
-    minCopy: String(Number(b.minCopy) || 100),
-    riskScore: Math.max(1, Math.min(10, Number(b.riskScore) || 5)),
-  });
-  return c.redirect('/admin/traders?ok=1');
+  const f = traderFields(c.get('body'));
+  if (!f.displayName) return c.redirect('/admin/traders?e=' + encodeURIComponent('Display name is required.'));
+  const [t] = await db.insert(tradersT).values({
+    ...f,
+    slug: f.displayName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Math.random().toString(36).slice(2, 6),
+  }).returning({ id: tradersT.id });
+  return c.redirect(`/admin/traders/${t.id}?ok=created`);
+});
+
+admin.get('/admin/traders/:id', async (c) => {
+  const id = Number(c.req.param('id'));
+  const [t] = await traderStats(id, { includeHidden: true });
+  if (!t) return c.notFound();
+  const [follows, trades] = await Promise.all([
+    sql`select f.id, f.user_id, f.allocation::text allocation, f.status, f.started_at, f.stopped_at,
+               u.email, u.first_name, u.last_name,
+               coalesce(sum(p.pnl), 0)::text pnl,
+               count(p.id) filter (where p.status = 'open') open_positions
+        from copy_follows f
+        join users u on u.id = f.user_id
+        left join copy_positions p on p.follow_id = f.id
+        where f.trader_id = ${id}
+        group by f.id, u.id
+        order by (f.status = 'active') desc, f.started_at desc
+        limit 200`,
+    sql`select id, symbol, side, entry_price::text entry_price, exit_price::text exit_price,
+               size_usd::text size_usd, leverage, status, pnl::text pnl, opened_at, closed_at
+        from trader_trades where trader_id = ${id}
+        order by opened_at desc limit 25`,
+  ]);
+  return shell(c, 'admin/trader', {
+    t, follows, trades, strategies: STRATEGIES, markets: MARKETS,
+    ok: c.req.query('ok'), error: c.req.query('e'),
+  }, t.displayName);
+});
+
+admin.post('/admin/traders/:id/edit', async (c) => {
+  const id = Number(c.req.param('id'));
+  const f = traderFields(c.get('body'));
+  if (!f.displayName) return c.redirect(`/admin/traders/${id}?e=` + encodeURIComponent('Display name is required.'));
+  const res = await db.update(tradersT).set(f).where(eq(tradersT.id, id)).returning({ id: tradersT.id });
+  if (!res.length) return c.notFound();
+  return c.redirect(`/admin/traders/${id}?ok=saved`);
 });
 
 admin.post('/admin/traders/:id/toggle', async (c) => {
   const id = Number(c.req.param('id'));
   await sql`update traders set active = not active where id = ${id}`;
-  return c.redirect('/admin/traders');
+  const back = c.get('body').back === 'detail' ? `/admin/traders/${id}?ok=toggled` : '/admin/traders';
+  return c.redirect(back);
+});
+
+admin.post('/admin/traders/:id/followers/:fid/stop', async (c) => {
+  const id = Number(c.req.param('id'));
+  const fid = Number(c.req.param('fid'));
+  const me = c.get('user');
+  const [t] = await db.select().from(tradersT).where(eq(tradersT.id, id)).limit(1);
+  if (!t) return c.notFound();
+  const [owner] = await sql`select id from copy_follows where id = ${fid} and trader_id = ${id}`;
+  if (!owner) return c.notFound();
+  const f = await stopFollow(fid, { memo: `Copy of ${t.displayName} stopped by support` });
+  if (!f) return c.redirect(`/admin/traders/${id}?e=` + encodeURIComponent('That copy is already stopped.'));
+  await sql`insert into audit_log (admin_id, user_id, action, amount, reason, ip)
+    values (${me.id}, ${f.user_id}, 'copy_stop', ${f.allocation},
+            ${`Stopped copying ${t.displayName}; allocation released with P&L ${fmt.signedUsd(f.pnl)}`}, ${ipOf(c)})`;
+  await db.insert(notifications).values({
+    userId: f.user_id, kind: 'info', title: 'Copy stopped',
+    body: `Your copy of ${t.displayName} was stopped. Your allocation and P&L are back in your balance.`,
+  });
+  return c.redirect(`/admin/traders/${id}?ok=stopped`);
 });
 
 /* ---------------- plans ---------------- */

@@ -309,8 +309,9 @@ export async function migrate() {
   await syncWalletInstructions();
 }
 
-/* Renames + re-rosters the public trader lineup in place so existing rows
-   (ids, copy followers, trade history) keep their identity. Runs on every boot. */
+/* Renames legacy trader slugs in place (ids, followers, history kept) and
+   inserts the default roster when missing. Runs on every boot; never touches
+   traders an admin created, edited or hid. */
 async function syncTraderRoster() {
 
   const RENAMES = [
@@ -325,8 +326,14 @@ async function syncTraderRoster() {
      as a leader-less placeholder (e.g. from a previous roster round), drop it first so the
      followered source row can take the name. */
   for (const row of RENAMES) {
+    // Only act when an old slug is still present. Without this guard the
+    // delete ran on every boot and wiped roster traders (and their history)
+    // whenever nobody was copying them.
+    if (row[0] === row[1]) continue;
+    const [old] = await sql`select id from traders where slug = ${row[0]}`;
+    if (!old) continue;
     await sql`delete from traders where slug = ${row[1]} and not exists (select 1 from copy_follows cf where cf.trader_id = traders.id)`;
-    await sql`update traders set slug = ${row[1]}, display_name = ${row[2]}, strategy = ${row[3]}, active = true where slug = ${row[0]}`;
+    await sql`update traders set slug = ${row[1]}, display_name = ${row[2]}, strategy = ${row[3]} where slug = ${row[0]}`;
   }
   const ROSTER = [
     ['dennis-willam', 'Dennis Willam', 'Forex Master',  4,  1000],
@@ -342,8 +349,7 @@ async function syncTraderRoster() {
               ${JSON.stringify(['crypto', 'forex'])}, true)
       on conflict (slug) do nothing`;
   }
-  await sql`update traders set active = true where slug = any(${ROSTER.map(r => r[0])})`;
-  await sql`update traders set active = false where active = true and slug <> all(${ROSTER.map(r => r[0])})`;
+  // Show/hide is an admin decision (Admin → Traders); boot no longer overrides it.
 }
 
 /* Deposit wallet addresses: mirrored onto the btc/eth payment methods' instructions

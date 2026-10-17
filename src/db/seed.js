@@ -22,7 +22,7 @@ const TRADERS = [
     bio: 'Majors  one or two crosses. Trades London  New York overlap, flat overnight.' },
   { name: 'Thomas John',   strategy: 'Stock Market Pro',     risk:   6,   min:   500,
     bio: 'Momentum on large-cap US equities. Holds through earnings only when the setup was there before the print.' },
-  { name: 'Marcus Rodriquez',        strategy: 'Swing Trader',     risk: 7, min: 300,
+  { name: 'Marcus Rodriquez', slug: 'marcus-rodriguez', strategy: 'Swing Trader', risk: 7, min: 300,
     bio: 'Multi-day swings on crypto and index CFDs. Wide stops, small size, patient with entries.' },
   { name: 'Sophia Claire',    strategy: 'Fixed Income',     risk: 2, min: 2500,
     bio: 'Rates and carry. Low turnover, low drawdown, unexciting by design.' },
@@ -56,14 +56,15 @@ async function main() {
   /* --- traders --- */
   const usedSlugs = new Set();
   for (const t of TRADERS) {
-    let slug = t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    // Must match the boot roster slugs in migrate.js or the trader is duplicated.
+    let slug = t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   if (usedSlugs.has(slug)) slug += '-' + t.strategy.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     usedSlugs.add(slug);
     await sql`
       insert into traders (slug, display_name, strategy, bio, min_copy, risk_score, markets, active)
       values (${slug}, ${t.name}, ${t.strategy}, ${t.bio}, ${t.min}, ${t.risk},
               ${JSON.stringify(['crypto', 'forex'])}, true)
-      on conflict (slug) do nothing`;
+      on conflict (slug) do update set bio = coalesce(traders.bio, excluded.bio)`;
   }
   console.log(`[seed] traders: ${TRADERS.length}`);
 

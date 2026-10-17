@@ -78,7 +78,7 @@ pub.get('/copy-trading', async (c) => {
 
 pub.get('/copy-trading/:slug', async (c) => {
   const [t] = await db.select().from(tradersT).where(eq(tradersT.slug, c.req.param('slug'))).limit(1);
-  if (!t) return c.notFound();
+  if (!t || !t.active) return c.notFound();   // hidden traders are not public
   const [[stat], trades, tick] = await Promise.all([
     traderStats(t.id),
     db.select().from(traderTrades)

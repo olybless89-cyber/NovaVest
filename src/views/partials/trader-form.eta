@@ -1,0 +1,23 @@
+<%/* Shared add/edit trader fields. it.t is the trader when editing, absent when adding. */%>
+<% const t = it.t || {}; const sel = t.strategy || 'Swing Trader'; const mk = t.markets || ['crypto', 'forex']; const pre = it.pre || 'n'; %>
+<div class="field"><label for="<%= pre %>-dn">Display name</label>
+  <input class="input" id="<%= pre %>-dn" name="displayName" required maxlength="80" value="<%= t.displayName || '' %>"></div>
+<div class="field"><label for="<%= pre %>-st">Strategy</label>
+  <input class="input" id="<%= pre %>-st" name="strategy" list="<%= pre %>-strategies" maxlength="60" value="<%= sel %>">
+  <datalist id="<%= pre %>-strategies"><% it.strategies.forEach(function(s){ %><option value="<%= s %>"><% }) %></datalist>
+  <div class="small muted" style="margin-top:4px">Pick one or type your own.</div></div>
+<div class="field"><label for="<%= pre %>-bo">Short bio</label>
+  <textarea class="input" id="<%= pre %>-bo" name="bio" rows="3" maxlength="600"><%= t.bio || '' %></textarea></div>
+<div class="row2">
+  <div class="field"><label for="<%= pre %>-mc">Minimum copy ($)</label>
+    <input class="input num" id="<%= pre %>-mc" name="minCopy" type="number" min="1" step="1" value="<%= t.minCopy != null ? Number(t.minCopy) : 100 %>"></div>
+  <div class="field"><label for="<%= pre %>-rs">Risk (1–10)</label>
+    <input class="input num" id="<%= pre %>-rs" name="riskScore" type="number" min="1" max="10" value="<%= t.riskScore || 5 %>"></div>
+</div>
+<div class="field"><label>Markets</label>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 14px">
+    <% it.markets.forEach(function(m){ %>
+      <label class="small" style="display:inline-flex;align-items:center;gap:6px;text-transform:capitalize">
+        <input type="checkbox" name="market_<%= m %>" value="1" <%= mk.indexOf(m) >= 0 ? 'checked' : '' %>> <%= m %></label>
+    <% }) %>
+  </div></div>
