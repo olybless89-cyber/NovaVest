@@ -514,7 +514,7 @@ admin.post('/admin/users/:id/reset-password', async (c) => {
     body: 'Your password was changed by support. If you did not expect this, contact support immediately.',
   });
   mailAdminMessage(u, 'Your password was changed',
-    `Your ${process.env.BRAND_NAME || 'Marketedge'} password was changed by support.\n\nIf you did not expect this change, contact support immediately.`)
+    `Your ${process.env.BRAND_NAME || 'NovaVest'} password was changed by support.\n\nIf you did not expect this change, contact support immediately.`)
     .catch((e) => console.error('[mail] reset pw failed:', e.message));
   return c.redirect(`/admin/users/${id}?ok=1&m=` + encodeURIComponent('Password updated and the user was signed out everywhere.'));
 });
@@ -713,7 +713,7 @@ admin.get('/admin/mail/settings', async (c) => {
   const cfg = await getMailConfig() || {
     host: 'smtp.gmail.com', port: 465, secure: true,
     user: 'marketedgesupport@gmail.com', pass: '',
-    fromName: 'Marketedge Support', fromAddress: 'marketedgesupport@gmail.com',
+    fromName: 'NovaVest Support', fromAddress: 'marketedgesupport@gmail.com',
   };
   const hasPass = !!(cfg.pass && cfg.pass.length);
   return shell(c, 'admin/mail-settings', {

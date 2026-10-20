@@ -48,7 +48,7 @@
   <div class="wrap">
     <div class="center" style="margin-bottom:40px">
       <span class="eyebrow yellow">Positive Highlights</span>
-      <h2 style="margin-top:14px">Why traders trust Marketedge</h2>
+      <h2 style="margin-top:14px">Why traders trust <%= it.brand ? it.brand.name : 'NovaVest' %></h2>
       <p class="lede" style="margin:14px auto 0">Verified safety signals and clear payment protection.</p>
     </div>
 

@@ -42,7 +42,7 @@
         <div class="hint">For Gmail, paste the App Password from <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Passwords</a> — spaces are fine.</div></div>
       <div class="row2">
         <div class="field"><label for="fromName">From name</label>
-          <input class="input" id="fromName" name="fromName" value="<%= it.cfg.fromName || 'Marketedge' %>" placeholder="Marketedge"></div>
+          <input class="input" id="fromName" name="fromName" value="<%= it.cfg.fromName || 'NovaVest' %>" placeholder="NovaVest"></div>
         <div class="field"><label for="fromAddress">From address</label>
           <input class="input" id="fromAddress" name="fromAddress" value="<%= it.cfg.fromAddress || '' %>" placeholder="support@example.com"></div>
       </div>

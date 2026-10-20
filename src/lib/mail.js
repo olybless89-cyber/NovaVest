@@ -39,10 +39,10 @@ const eta = new Eta({
 });
 
 const brand = () => ({
-  name: process.env.BRAND_NAME || 'Marketedge',
-  domain: process.env.BRAND_DOMAIN || 'marketedge.com',
+  name: process.env.BRAND_NAME || 'NovaVest',
+  domain: process.env.BRAND_DOMAIN || 'novavest.com',
   year: new Date().getFullYear(),
-  base: process.env.BRAND_URL || `https://${process.env.BRAND_DOMAIN || 'marketedge.com'}`,
+  base: process.env.BRAND_URL || `https://${process.env.BRAND_DOMAIN || 'novavest.com'}`,
 });
 
 /* ---- Mail config stored in the settings table ----
@@ -52,7 +52,7 @@ const brand = () => ({
 const GMAIL_PRESET = {
   host: 'smtp.gmail.com', port: 465, secure: true,
   user: 'marketedgesupport@gmail.com', pass: '',
-  fromName: 'Marketedge Support', fromAddress: 'marketedgesupport@gmail.com',
+  fromName: 'NovaVest Support', fromAddress: 'marketedgesupport@gmail.com',
 };
 
 export async function getMailConfig() {
@@ -79,7 +79,7 @@ export async function setMailConfig(partial) {
     pass: (partial.pass === undefined || partial.pass === '')
       ? (prev.pass || '')
       : String(partial.pass),
-    fromName: String(partial.fromName || prev.fromName || 'Marketedge').trim(),
+    fromName: String(partial.fromName || prev.fromName || 'NovaVest').trim(),
     fromAddress: String(partial.fromAddress || prev.fromAddress || '').trim(),
   };
   await setSetting('mail_config', next);
@@ -159,7 +159,7 @@ export async function autoSetupMail() {
       secure: process.env.SMTP_SECURE !== 'false',
       user: process.env.SMTP_USER || '',
       pass: process.env.SMTP_PASS || '',
-      fromName: process.env.MAIL_FROM_NAME || 'Marketedge Support',
+      fromName: process.env.MAIL_FROM_NAME || 'NovaVest Support',
       fromAddress: process.env.SMTP_FROM || process.env.SMTP_USER || '',
     });
     console.log('[mail] auto-configured from SMTP_HOST env');
@@ -178,7 +178,7 @@ export async function autoSetupMail() {
         secure: u.protocol === 'smtps:',
         user: decodeURIComponent(u.username || ''),
         pass: decodeURIComponent(u.password || ''),
-        fromName: process.env.MAIL_FROM_NAME || 'Marketedge Support',
+        fromName: process.env.MAIL_FROM_NAME || 'NovaVest Support',
         fromAddress: process.env.SMTP_FROM || decodeURIComponent(u.username || ''),
       });
       console.log('[mail] auto-configured from SMTP_URL env');
@@ -193,7 +193,7 @@ export async function autoSetupMail() {
   await setMailConfig({
     provider: 'builtin',
     host: '',
-    fromName: process.env.MAIL_FROM_NAME || 'Marketedge Support',
+    fromName: process.env.MAIL_FROM_NAME || 'NovaVest Support',
     fromAddress: process.env.SMTP_FROM || process.env.SUPPORT_EMAIL || GMAIL_PRESET.fromAddress,
   });
   console.log('[mail] built-in web mail active (no external provider)');
@@ -262,13 +262,13 @@ export async function sendMail({ userId = null, to, template, subject, data = {}
 export async function sendTestMail(to) {
   const b = brand();
   const bodyHtml = eta.render('mail/layout', {
-    ...b, to, subject: 'Marketedge test email',
+    ...b, to, subject: 'NovaVest test email',
     body: `<div style="padding:8px 0"><h2 style="margin:0 0 8px">It works! ✅</h2>
       <p style="margin:0">This confirms your mail settings are correct. Transactional
       emails from ${b.name} will now be delivered from this address.</p></div>`,
   });
   const [row] = await db.insert(mailLog).values({
-    toEmail: to, template: 'mail/test', subject: 'Marketedge test email',
+    toEmail: to, template: 'mail/test', subject: 'NovaVest test email',
     bodyHtml, status: 'logged',
   }).returning({ id: mailLog.id });
 
@@ -284,7 +284,7 @@ export async function sendTestMail(to) {
     return { id: row.id, status: 'failed', error: 'SMTP is not configured. Fill in the form below first.' };
   }
   try {
-    const info = await tx.sendMail({ from: await fromHeader(), to, subject: 'Marketedge test email', html: bodyHtml });
+    const info = await tx.sendMail({ from: await fromHeader(), to, subject: 'NovaVest test email', html: bodyHtml });
     await db.update(mailLog).set({ status: 'sent' }).where(eq(mailLog.id, row.id));
     return { id: row.id, status: 'sent', messageId: info.messageId };
   } catch (e) {

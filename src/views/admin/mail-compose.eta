@@ -32,7 +32,7 @@
 
     <div class="field"><label for="message">Message</label>
       <textarea class="input" id="message" name="message" rows="9" required placeholder="Write in plain text. Blank lines start a new paragraph."></textarea>
-      <div class="hint">Plain text only — links are fine, HTML is escaped. Signed automatically as the <%= it.brand ? it.brand.name : 'Marketedge' %> team.</div></div>
+      <div class="hint">Plain text only — links are fine, HTML is escaped. Signed automatically as the <%= it.brand ? it.brand.name : 'NovaVest' %> team.</div></div>
 
     <button class="btn btn-primary btn-block btn-sm" data-confirm="Send this email now?">Send mail</button>
   </form>

@@ -23,8 +23,8 @@ export function render(c, template, data = {}) {
     path: c.req.path,
     site: c.get('site') || { supportEmail: 'marketedgesupport@gmail.com', smartsuppKey: '' },
     brand: {
-      name: process.env.BRAND_NAME || 'Marketedge',
-      domain: process.env.BRAND_DOMAIN || 'marketedge.com',
+      name: process.env.BRAND_NAME || 'NovaVest',
+      domain: process.env.BRAND_DOMAIN || 'novavest.com',
       year: new Date().getFullYear(),
     },
   });
