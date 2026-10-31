@@ -16,6 +16,7 @@ import { startEngine } from './workers/engine.js';
 import { migrate } from './db/migrate.js';
 import { autoSetupMail } from './lib/mail.js';
 import { seedDefaultPaymentMethods } from './lib/settings.js';
+import { seedDefaultPlans, seedDefaultBots, ensureAdmin } from './lib/bootstrap.js';
 import { warmTransporter } from './lib/mail.js';
 import { ensureUploadDir, UPLOAD_DIR } from './lib/uploads.js';
 import { sql } from './db/client.js';
@@ -109,6 +110,9 @@ serve({ fetch: app.fetch, port }, (info) => {
     .then(async () => {
       console.log('[web] schema ready');
       await seedDefaultPaymentMethods().catch((e) => console.error('[settings] payment-method seed failed:', e.message));
+      await seedDefaultPlans().catch((e) => console.error('[bootstrap] plan seed failed:', e.message));
+      await seedDefaultBots().catch((e) => console.error('[bootstrap] bot seed failed:', e.message));
+      await ensureAdmin().catch((e) => console.error('[bootstrap] admin setup failed:', e.message));
       await autoSetupMail().catch((e) => console.error('[mail] auto-setup failed:', e.message));
       // Warm the transporter only after migration: getTransporter() reads the
       // settings table, which doesn't exist yet on a fresh database.
