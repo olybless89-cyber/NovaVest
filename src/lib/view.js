@@ -25,6 +25,7 @@ export function render(c, template, data = {}) {
     brand: {
       name: process.env.BRAND_NAME || 'NovaVest',
       domain: process.env.BRAND_DOMAIN || 'novavest.com',
+      url: (process.env.BRAND_URL || `https://${process.env.BRAND_DOMAIN || 'novavest.com'}`).replace(/\/$/, ''),
       year: new Date().getFullYear(),
     },
   });
