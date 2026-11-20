@@ -62,7 +62,17 @@ export async function ensureAdmin() {
   const pw = process.env.ADMIN_PASSWORD;
   if (!email || !pw) return false;
   const [existing] = await sql`select id from users where email = ${email}`;
-  if (existing) return false;
+  if (existing) {
+    // Opt-in recovery: ADMIN_FORCE_RESET=true resets the admin's password to
+    // ADMIN_PASSWORD on boot. Unset it afterwards so admin-UI changes stick.
+    if (/^(1|true|yes)$/i.test(process.env.ADMIN_FORCE_RESET || '') && pw.length >= 8) {
+      await sql`update users set password_hash = ${await hash(pw)}, role = 'admin', status = 'active'
+                where id = ${existing.id}`;
+      console.log(`[bootstrap] admin password reset from env: ${email}`);
+      return true;
+    }
+    return false;
+  }
   await sql`
     insert into users (email, password_hash, first_name, last_name, role, referral_code)
     values (${email}, ${await hash(pw)}, 'Platform', 'Admin', 'admin',
