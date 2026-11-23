@@ -1,0 +1,50 @@
+# Render Blueprint for NovaVest (web service + Postgres + uploads disk)
+services:
+  - type: web
+    name: novavest
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    disk:
+      name: novavest-uploads
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novavest-db
+          property: connectionString
+      - key: DB_SSL
+        value: prefer
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: BRAND_NAME
+        value: NovaVest
+      - key: PRICE_POLL_MS
+        value: "15000"
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      - key: ADMIN_EMAIL
+        value: admin@novavest.com
+      - key: SESSION_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: COPY_FROM_DATABASE_URL
+        sync: false
+
+databases:
+  - name: novavest-db
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "17"
+    diskSizeGB: 5
+    databaseName: novavest_db_vajb
+    user: novavest_db_vajb_user
+    ipAllowList: []

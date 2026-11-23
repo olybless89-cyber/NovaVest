@@ -32,8 +32,12 @@ if (url && /db\.[a-z0-9]+\.supabase\.co/.test(url)) {
 //   sslmode=disable  -> ssl: false   (local dev / testing)
 //   (unset)          -> ssl: 'require'  (Railway Postgres and Neon both accept SSL)
 const sm = url ? /sslmode=([^&]+)/i.exec(url) : null;
+//   DB_SSL env (disable|require|prefer) overrides both — handy when the URL
+//   is injected by the host (e.g. Render fromDatabase) and can't be edited.
+const sslEnv = (process.env.DB_SSL || '').toLowerCase();
 const sslOpt = !url
   ? false
+  : sslEnv ? (sslEnv === 'disable' ? false : sslEnv)
   : sm ? (sm[1].toLowerCase() === 'disable' ? false : sm[1].toLowerCase()) : 'require';
 
 // Placeholder URL when DATABASE_URL is unset; fails fast on connect with a
