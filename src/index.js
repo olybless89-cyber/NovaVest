@@ -17,6 +17,7 @@ import { migrate } from './db/migrate.js';
 import { autoSetupMail } from './lib/mail.js';
 import { seedDefaultPaymentMethods } from './lib/settings.js';
 import { seedDefaultPlans, seedDefaultBots, ensureAdmin } from './lib/bootstrap.js';
+import { copyFromSourceIfConfigured } from './db/copy-from.js';
 import { warmTransporter } from './lib/mail.js';
 import { ensureUploadDir, UPLOAD_DIR } from './lib/uploads.js';
 import { sql } from './db/client.js';
@@ -109,6 +110,7 @@ serve({ fetch: app.fetch, port }, (info) => {
   migrate()
     .then(async () => {
       console.log('[web] schema ready');
+      await copyFromSourceIfConfigured().catch((e) => console.error('[copy] failed:', e.message));
       await seedDefaultPaymentMethods().catch((e) => console.error('[settings] payment-method seed failed:', e.message));
       await seedDefaultPlans().catch((e) => console.error('[bootstrap] plan seed failed:', e.message));
       await seedDefaultBots().catch((e) => console.error('[bootstrap] bot seed failed:', e.message));
