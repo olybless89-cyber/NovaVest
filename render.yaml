@@ -1,7 +1,7 @@
 # Render Blueprint for NovaVest (web service + Postgres + uploads disk)
 services:
   - type: web
-    name: novavest
+    name: novavestlive
     runtime: docker
     plan: starter
     region: frankfurt
